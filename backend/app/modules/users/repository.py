@@ -17,8 +17,19 @@ class UserRepository:
         result = await self.session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
+    async def get_by_phone_number(self, phone_number: str) -> User | None:
+        result = await self.session.execute(select(User).where(User.phone_number == phone_number))
+        return result.scalar_one_or_none()
+
     async def create(self, *, email: str, hashed_password: str) -> User:
         user = User(email=email, hashed_password=hashed_password)
+        self.session.add(user)
+        await self.session.flush()
+        await self.session.refresh(user)
+        return user
+
+    async def create_with_phone_number(self, phone_number: str) -> User:
+        user = User(phone_number=phone_number)
         self.session.add(user)
         await self.session.flush()
         await self.session.refresh(user)

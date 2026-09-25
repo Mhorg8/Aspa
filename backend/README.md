@@ -76,15 +76,48 @@ development stack; stopping it does not affect development containers or volumes
 
 ## Auth API
 
-- `POST /api/auth/register` creates a user and returns an access token.
-- `POST /api/auth/login` accepts email/password JSON and returns an access token.
+- `POST /api/auth/otp/request` accepts an Iranian phone number and sends a six-digit OTP.
+- `POST /api/auth/otp/verify` verifies the OTP, creates the user when needed, and returns an access token.
 - `GET /api/users/me` returns the authenticated user using `Authorization: Bearer <token>`.
+
+Iranian mobile numbers are normalized to E.164 (`+989xxxxxxxxx`). Local, Persian,
+and Arabic digits are accepted. The bundled local SMS provider keeps the latest
+code in process memory at `app.state.sms_provider.sent_codes`; it never logs OTPs.
+Replace this provider with the production SMS adapter before deployment.
 
 Routes use the stable `/api` prefix without a version segment. Health probes remain
 at `/health` and `/ready`. API errors use `{\"error\": {\"code\", \"message\", \"details\"?}}`.
 
-Registration and login share a Redis-backed limit of 20 requests per client IP per
+Authentication routes share a Redis-backed limit of 20 requests per client IP per
 60 seconds (configurable in `.env`). Excess requests return 429 with `Retry-After`.
 If Redis is unavailable, authentication returns 503 rather than bypassing the limit.
-Tokens must contain `sub`, `iat`, and `exp`. Authentication failures return the Bearer
-challenge header. Password hashing runs in a thread pool to avoid blocking the event loop.
+OTP values are hashed in Redis, expire after five minutes, have a resend cooldown,
+and permit five verification attempts by default. Tokens must contain `sub`, `iat`,
+and `exp`. Authentication failures return the Bearer challenge header.
+
+## Exercise catalog API
+
+- `GET /api/exercises` lists active exercises.
+- `GET /api/exercises/{id}` returns exercise details, muscle groups, equipment, and media keys.
+- `GET /api/muscle-groups` lists active muscle groups.
+- `GET /api/equipment` lists active equipment.
+
+The exercise list supports `page`, `page_size`, bilingual `search`, `muscle_group_id`,
+`equipment_id`, `difficulty`, `sort`, and `direction` query parameters. Difficulty
+values are `beginner`, `intermediate`, and `advanced`; sort values are `name_fa`,
+`name_en`, and `created_at`. Media fields contain S3-compatible object keys rather
+than binary content.
+
+## Workout plan API
+
+Workout-plan endpoints require a bearer token. The API supports:
+
+- `GET/POST /api/workout-plans` to list and create plans.
+- `GET/PATCH/DELETE /api/workout-plans/{plan_id}` to read, edit, archive, or delete.
+- `POST /api/workout-plans/{plan_id}/duplicate` to deep-copy a plan.
+- Nested `/days` routes to create, edit, reorder, and remove training days.
+- Nested `/exercises` routes to configure sets, rep ranges, rest, notes, and ordering.
+
+Archived plans are excluded by default; pass `include_archived=true` when listing
+to include them. Setting `is_archived` through the plan PATCH endpoint performs a
+reversible archive, while DELETE permanently removes the plan.

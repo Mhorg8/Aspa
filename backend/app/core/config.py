@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=30, gt=0)
     auth_rate_limit_requests: int = Field(default=20, gt=0)
     auth_rate_limit_window_seconds: int = Field(default=60, gt=0)
+    otp_expire_seconds: int = Field(default=300, ge=60, le=900)
+    otp_resend_cooldown_seconds: int = Field(default=60, ge=1, le=300)
+    otp_max_attempts: int = Field(default=5, ge=1, le=10)
     readiness_timeout_seconds: float = Field(default=2.0, gt=0, le=10)
 
     @model_validator(mode="after")

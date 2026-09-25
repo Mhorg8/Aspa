@@ -1,0 +1,1 @@
+"""Reusable workout plan module."""

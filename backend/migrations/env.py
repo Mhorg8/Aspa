@@ -7,7 +7,28 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
 from app.db.base import Base
+from app.modules.exercises.models import (
+    Equipment as Equipment,
+)
+from app.modules.exercises.models import (
+    Exercise as Exercise,
+)
+from app.modules.exercises.models import (
+    ExerciseMuscle as ExerciseMuscle,
+)
+from app.modules.exercises.models import (
+    MuscleGroup as MuscleGroup,
+)
 from app.modules.users.models import User as User
+from app.modules.workout_plans.models import (
+    WorkoutPlan as WorkoutPlan,
+)
+from app.modules.workout_plans.models import (
+    WorkoutPlanDay as WorkoutPlanDay,
+)
+from app.modules.workout_plans.models import (
+    WorkoutPlanExercise as WorkoutPlanExercise,
+)
 
 config = context.config
 if config.config_file_name is not None:

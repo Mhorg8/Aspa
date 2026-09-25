@@ -15,6 +15,7 @@ from app.core.exceptions import ErrorResponse, error_content, register_exception
 from app.core.logging import configure_logging
 from app.db.session import DbSession, engine
 from app.integrations.redis import create_redis, get_redis
+from app.integrations.sms import LocalSmsProvider
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
     configure_logging(settings.log_level)
     redis = create_redis()
     application.state.redis = redis
+    application.state.sms_provider = LocalSmsProvider()
     try:
         yield
     finally:
@@ -38,6 +40,7 @@ app = FastAPI(
     description="ASPA fitness and wellness REST API",
     lifespan=lifespan,
 )
+app.state.sms_provider = LocalSmsProvider()
 register_exception_handlers(app)
 app.include_router(router)
 

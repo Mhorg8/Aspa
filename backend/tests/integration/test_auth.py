@@ -12,12 +12,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.security import verify_password
 from app.integrations.redis import get_redis
+from app.integrations.sms import LocalSmsProvider
 from app.main import app
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
 pytestmark = pytest.mark.integration
 CREDENTIALS = {"email": "athlete@example.com", "password": "strong-password"}
+
+
+async def test_phone_otp_signup(integration_client: AsyncClient, db_session: AsyncSession) -> None:
+    requested = await integration_client.post(
+        "/api/auth/otp/request", json={"phone_number": "۰۹۱۲۱۲۳۴۵۶۷"}
+    )
+    assert requested.status_code == 202, requested.text
+    provider = app.state.sms_provider
+    assert isinstance(provider, LocalSmsProvider)
+    code = provider.sent_codes["+989121234567"]
+
+    verified = await integration_client.post(
+        "/api/auth/otp/verify",
+        json={"phone_number": "09121234567", "code": code},
+    )
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["user"]["phone_number"] == "+989121234567"
+    user = await db_session.scalar(select(User).where(User.phone_number == "+989121234567"))
+    assert user is not None
+    assert user.email is None
+    assert user.hashed_password is None
 
 
 async def test_full_auth_flow(integration_client: AsyncClient, db_session: AsyncSession) -> None:
